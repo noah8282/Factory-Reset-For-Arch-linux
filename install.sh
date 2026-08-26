@@ -26,5 +26,5 @@ sudo install -Dm755 /tmp/arch-clean-reset.sh "$INSTALL_PATH"
 rm -f /tmp/arch-clean-reset.sh
 
 echo
-echo "Installed. Run it from anywhere with:"
+echo "🎗️ Installed. Run it from anywhere with:"
 echo "    arch-clean-reset"

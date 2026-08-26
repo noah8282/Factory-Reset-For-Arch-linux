@@ -27,4 +27,4 @@ rm -f /tmp/arch-clean-reset.sh
 
 echo
 echo "🎀 Installed. Run it from anywhere with:"
-echo "    arch-clean-reset"
+echo "🐾   arch-clean-reset  😼"

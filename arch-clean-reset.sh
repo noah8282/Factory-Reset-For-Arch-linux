@@ -20,7 +20,7 @@
 set -euo pipefail
 
 if [[ $EUID -eq 0 ]]; then
-  echo "Run as your normal user, not root — it calls sudo when needed."
+  echo "🚫 Run as your normal user, not root — it calls sudo when needed."
   exit 1
 fi
 
@@ -30,7 +30,7 @@ BACKUP_DIR="$HOME/arch-reset-backup-$(date +%Y%m%d-%H%M%S)"
 # 1. AUTO-DETECT WHAT NEEDS TO BE KEPT
 # ---------------------------------------------------------------------------
 
-echo "=== Detecting your system so nothing essential gets removed ==="
+echo "🔍 === Detecting your system so nothing essential gets removed ==="
 
 KEEP_PKGS=(
   base base-devel
@@ -47,20 +47,20 @@ KEEP_PKGS=(
 
 if [[ -d /boot/loader/entries ]] || bootctl is-installed &>/dev/null; then
   KEEP_PKGS+=(systemd-boot efibootmgr)
-  echo "Detected bootloader: systemd-boot"
+  echo "🥾 Detected bootloader: systemd-boot"
 elif [[ -f /etc/default/grub ]]; then
   KEEP_PKGS+=(grub efibootmgr)
-  echo "Detected bootloader: grub"
+  echo "🥾 Detected bootloader: grub"
 elif pacman -Qq refind &>/dev/null; then
   KEEP_PKGS+=(refind)
-  echo "Detected bootloader: rEFInd"
+  echo "🥾 Detected bootloader: rEFInd"
 else
-  echo "!! Could not detect your bootloader automatically — check the keep list below carefully."
+  echo "⚠️  Could not detect your bootloader automatically — check the keep list below carefully."
 fi
 
 CURRENT_SHELL_PKG=$(basename "${SHELL:-/bin/bash}")
 KEEP_PKGS+=("$CURRENT_SHELL_PKG")
-echo "Detected shell: $CURRENT_SHELL_PKG"
+echo "🐚 Detected shell: $CURRENT_SHELL_PKG"
 
 for ed in vim nano neovim; do
   pacman -Qq "$ed" &>/dev/null && KEEP_PKGS+=("$ed")
@@ -69,13 +69,13 @@ done
 for helper in yay yay-bin paru paru-bin; do
   if pacman -Qq "$helper" &>/dev/null; then
     KEEP_PKGS+=("$helper")
-    echo "Detected AUR helper: $helper"
+    echo "📦 Detected AUR helper: $helper"
   fi
 done
 
 if systemctl is-enabled sshd &>/dev/null; then
   KEEP_PKGS+=(openssh)
-  echo "sshd is enabled — keeping openssh"
+  echo "🔐 sshd is enabled — keeping openssh"
 fi
 
 pacman -Qq git &>/dev/null && KEEP_PKGS+=(git)
@@ -83,7 +83,7 @@ pacman -Qq git &>/dev/null && KEEP_PKGS+=(git)
 mapfile -t KEEP_PKGS < <(printf '%s\n' "${KEEP_PKGS[@]}" | sort -u)
 
 echo
-echo "Packages that will always be kept:"
+echo "✅ Packages that will always be kept:"
 printf '  %s\n' "${KEEP_PKGS[@]}"
 echo
 
@@ -92,18 +92,18 @@ echo
 # ---------------------------------------------------------------------------
 
 echo "=============================================================="
-echo " ARCH CLEAN RESET"
+echo " 🧹 ARCH CLEAN RESET 🧹"
 echo "=============================================================="
-echo "This will, in one go:"
+echo "✨ This will, in one go:"
 echo "  1. Remove every explicitly-installed package not listed above"
 echo "  2. Remove orphaned dependencies and clean the package cache"
 echo "  3. Reinstall the 'base' group to guarantee a complete minimal system"
 echo "  4. Move leftover config/cache folders for removed apps into a backup"
 echo "     folder (quarantined, not deleted)"
 echo
-read -rp "Type EXACTLY 'reset my system' to continue: " confirm
+read -rp "⌨️  Type EXACTLY 'reset my system' to continue: " confirm
 if [[ "$confirm" != "reset my system" ]]; then
-  echo "Confirmation text didn't match. Aborting, nothing was changed."
+  echo "❌ Confirmation text didn't match. Aborting, nothing was changed."
   exit 1
 fi
 
@@ -113,7 +113,7 @@ mkdir -p "$BACKUP_DIR"
 # 3. BACKUP
 # ---------------------------------------------------------------------------
 
-echo "=== Backing up current state to $BACKUP_DIR ==="
+echo "💾 === Backing up current state to $BACKUP_DIR ==="
 pacman -Qqe > "$BACKUP_DIR/explicit-packages.txt"
 pacman -Qq  > "$BACKUP_DIR/all-packages.txt"
 pacman -Qm  > "$BACKUP_DIR/foreign-aur-packages.txt" 2>/dev/null || true
@@ -136,29 +136,29 @@ done
 
 echo
 if [[ ${#TO_REMOVE[@]} -eq 0 ]]; then
-  echo "Nothing to remove — explicit packages already match the keep list."
+  echo "🎉 Nothing to remove — explicit packages already match the keep list."
 else
-  echo "Removing ${#TO_REMOVE[@]} packages:"
+  echo "🗑️  Removing ${#TO_REMOVE[@]} packages:"
   printf '  %s\n' "${TO_REMOVE[@]}"
   sudo pacman -Rns --noconfirm "${TO_REMOVE[@]}" || \
-    echo "Some packages failed to remove (likely required by something kept). Review above."
+    echo "⚠️  Some packages failed to remove (likely required by something kept). Review above."
 fi
 
 # ---------------------------------------------------------------------------
 # 5. ORPHANS + CACHE
 # ---------------------------------------------------------------------------
 
-echo "=== Cleaning orphaned dependencies ==="
+echo "🧽 === Cleaning orphaned dependencies ==="
 while true; do
   orphans=$(pacman -Qtdq || true)
   [[ -z "$orphans" ]] && break
   echo "$orphans" | sudo pacman -Rns --noconfirm -
 done
 
-echo "=== Cleaning pacman cache ==="
+echo "🧼 === Cleaning pacman cache ==="
 sudo pacman -Scc --noconfirm
 
-echo "=== Reinstalling base group to guarantee a complete minimal system ==="
+echo "🔧 === Reinstalling base group to guarantee a complete minimal system ==="
 sudo pacman -S --needed --noconfirm base
 
 # ---------------------------------------------------------------------------
@@ -168,7 +168,7 @@ sudo pacman -S --needed --noconfirm base
 if [[ ${#TO_REMOVE[@]} -gt 0 ]]; then
   QUARANTINE="$BACKUP_DIR/quarantined-configs"
   mkdir -p "$QUARANTINE"
-  echo "=== Moving matching leftover config/cache dirs into $QUARANTINE ==="
+  echo "📦 === Moving matching leftover config/cache dirs into $QUARANTINE ==="
   for pkg in "${TO_REMOVE[@]}"; do
     name="${pkg%% *}"
     for base in "$HOME/.config" "$HOME/.local/share" "$HOME/.cache"; do
@@ -178,12 +178,12 @@ if [[ ${#TO_REMOVE[@]} -gt 0 ]]; then
       fi
     done
   done
-  echo "Nothing was permanently deleted — review $QUARANTINE and remove it yourself once you're sure."
+  echo "🛡️  Nothing was permanently deleted — review $QUARANTINE and remove it yourself once you're sure."
 fi
 
 echo
 echo "=============================================================="
-echo " DONE"
+echo " 🎊 DONE 🎊"
 echo "=============================================================="
-echo "Backup + quarantined configs: $BACKUP_DIR"
-echo "Reboot to confirm everything still comes up cleanly: sudo reboot"
+echo "💾 Backup + quarantined configs: $BACKUP_DIR"
+echo "🔁 Reboot to confirm everything still comes up cleanly: sudo reboot"
